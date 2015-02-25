@@ -1,0 +1,88 @@
+\chapter{Introduction}
+
+In this first chapter, I'll give some general information about JVOIPLIB.
+
+	\section{About JVOIPLIB}
+
+	First of all, the name `JVOIPLIB' simply stands for ``Jori's VoIP Library''.
+	This library is intended to make the creation of Voice over IP (VoIP)
+	applications a lot easier by providing a simple and extensible interface
+	for creating and managing VoIP sessions.
+
+	The library is based upon a VoIP framework which I developed for my
+	university thesis at the `School for Knowledge Technology' (`School
+	voor Kennistechnologie' in Dutch), a cooperation between the Hasselt
+	University \footnote{\url{http://www.uhasselt.be}} and the
+	Maastricht University\footnote{\url{http://www.unimaas.nl}}.
+	This VoIP framework merely defined the necessary components for a VoIP
+	session and specified how these components should interact with each
+	other. For each component type (e.g. the compression scheme) I made one
+	or more implementations.
+
+	All this worked fine, but there was still a bit of work to do if you wanted
+	to add VoIP to an application. It was not difficult, but I figured that
+	it should be easier. Also, the framework and its implementation lacked some
+	flexibility: for example, there was no easy way to change the sampling rate
+	during a session.
+	
+	After I completed my thesis, I started working on a true VoIP library during
+	my vacation. A bit later, I got employed at the Expertise Centre for Digital
+	Media\footnote{\url{http://www.edm.uhasselt.be}}, a research center of the 
+	Hasselt University, where I was allowed to continue my work on the library. 
+	The result of all this is this package.
+	
+	\section{Features}
+	
+	Features of the library include:
+	\begin{itemize}
+		\item Easy VoIP session creation and destruction.
+		\item Highly configurable sessions: sampling rate, sample interval, compression
+		      type, etc. can all be selected by the user. These features can also
+		      be changed {\em during} a session.
+		\item Openness and extensibility: the object-oriented nature of the library
+		      makes it very easy to add features; new components can easily be tested
+		      by registering them as `User Defined' modules.
+		\item Support for 3D effects: for my thesis I also did some R\&D about VoIP
+		      in networked virtual environments, which included adding 3D effects
+		      to sound. For this reason, I've added this feature to the library.
+	\end{itemize}
+	
+	Currently, several components have one or more implementations. In this release,
+	these modules are included:
+	\begin{itemize}
+		\item soundcard input and output, file input and output
+		\item DPCM compression, Mu-law encoding, GSM (06.10) 13 kbps compression, 
+		      LPC 5.4 kbps compression, Speex compression.
+		\item RTP (Real-time Transport Protocol) transmission of data
+		\item an elementary voice mixer
+		\item a simple localisation scheme and a HRTF based localisation scheme
+	\end{itemize}
+
+	Basically, I wanted to make at least one implementation of every component 
+	type, so it would be easier for others to add components to the library.
+	
+	\section{Platforms}
+	
+	Currently, the library has been tested on a GNU/Linux and a MS-Windows platform.
+	
+	\section{Copyright \& disclaimer}
+	
+	The full copyright can be found in the file LICENSE.LGPL, which is
+	included in the library archive. In short, it's this:
+	\begin{quotation}
+	    This library is free software; you can redistribute it and/or
+	    modify it under the terms of the GNU Library General Public
+	    License as published by the Free Software Foundation; either
+	    version 2 of the License, or (at your option) any later version.\\
+	
+	    This library is distributed in the hope that it will be useful,
+	    but WITHOUT ANY WARRANTY; without even the implied warranty of
+	    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	    Library General Public License for more details.\\
+	
+	    You should have received a copy of the GNU Library General Public
+	    License along with this library; if not, write to the Free
+	    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
+	    USA
+	\end{quotation}
+

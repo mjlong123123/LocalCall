@@ -1,0 +1,82 @@
+CXX		= @CXX@
+CFLAGS		= @JVOIP_CFLAGS@
+INCLUDES	= -I ../../componentframework/ -I ../base -I ../../ -I @JVOIP_JTHREADINCLUDES@ \
+                  -I @JVOIP_JRTPLIBINCLUDES@ -I ../../thirdparty/gsm/inc \
+		  -I ../../thirdparty/lpc @JVOIP_SPEEXINCLUDES@
+JVOIPLIBDIR	= ../../../lib/
+JVOIPINCLUDEDIR	= ../../../include/
+
+SUBDIRS		= oss
+OBJECTS		= jvoipsampleconverter.o jvoipsimpletimer.o jvoipnormalmixer.o \
+                  jvoiprtptransmission.o jvoipdpcmcompression.o jvoipnoinput.o\
+		  jvoipnooutput.o jvoipsilencesuppression.o jvoipsimplelocalisation.o \
+		  jvoiphrtfdata.o jvoiphrtflocalisation.o jvoipgsmcompression.o \
+		  jvoiplpccompression.o jvoipulawcompression.o jvoipspeexcompression.o \
+		  jvoipfileoutput.o jvoipfileinput.o
+
+all: $(OBJECTS)
+	@for i in $(SUBDIRS) ; do\
+		if ! (cd $$i ; make) ; then\
+			exit 1;\
+		fi;\
+	done
+	cp -f $(OBJECTS) $(JVOIPLIBDIR)
+	cp -f *.h $(JVOIPINCLUDEDIR)
+
+clean:
+	@for i in $(SUBDIRS) ; do\
+		(cd $$i ; make clean) ;\
+	done
+	rm -f $(OBJECTS)
+
+jvoipsampleconverter.o: jvoipsampleconverter.cpp jvoipsampleconverter.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsampleconverter.o jvoipsampleconverter.cpp
+
+jvoipsimpletimer.o: jvoipsimpletimer.cpp jvoipsimpletimer.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsimpletimer.o jvoipsimpletimer.cpp
+
+jvoipnormalmixer.o: jvoipnormalmixer.cpp jvoipnormalmixer.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipnormalmixer.o jvoipnormalmixer.cpp
+
+jvoiprtptransmission.o: jvoiprtptransmission.cpp jvoiprtptransmission.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoiprtptransmission.o jvoiprtptransmission.cpp
+
+jvoipdpcmcompression.o: jvoipdpcmcompression.cpp jvoipdpcmcompression.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipdpcmcompression.o jvoipdpcmcompression.cpp
+
+jvoipnoinput.o: jvoipnoinput.cpp jvoipnoinput.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipnoinput.o jvoipnoinput.cpp
+
+jvoipnooutput.o: jvoipnooutput.cpp jvoipnooutput.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipnooutput.o jvoipnooutput.cpp
+
+jvoipsilencesuppression.o: jvoipsilencesuppression.cpp jvoipsilencesuppression.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsilencesuppression.o jvoipsilencesuppression.cpp
+
+jvoipsimplelocalisation.o: jvoipsimplelocalisation.cpp jvoipsimplelocalisation.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsimplelocalisation.o jvoipsimplelocalisation.cpp
+
+jvoiphrtfdata.o: jvoiphrtfdata.cpp jvoiphrtflocalisation.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoiphrtfdata.o jvoiphrtfdata.cpp
+
+jvoiphrtflocalisation.o: jvoiphrtflocalisation.cpp jvoiphrtfdata.cpp jvoiphrtflocalisation.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoiphrtflocalisation.o jvoiphrtflocalisation.cpp
+
+jvoipgsmcompression.o: jvoipgsmcompression.cpp jvoipgsmcompression.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipgsmcompression.o jvoipgsmcompression.cpp
+
+jvoiplpccompression.o: jvoiplpccompression.cpp jvoiplpccompression.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoiplpccompression.o jvoiplpccompression.cpp
+
+jvoipulawcompression.o: jvoipulawcompression.cpp jvoipulawcompression.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipulawcompression.o jvoipulawcompression.cpp
+
+jvoipspeexcompression.o: jvoipspeexcompression.cpp jvoipspeexcompression.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipspeexcompression.o jvoipspeexcompression.cpp
+
+jvoipfileoutput.o: jvoipfileoutput.cpp jvoipfileoutput.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipfileoutput.o jvoipfileoutput.cpp
+	
+jvoipfileinput.o: jvoipfileinput.cpp jvoipfileinput.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipfileinput.o jvoipfileinput.cpp
+

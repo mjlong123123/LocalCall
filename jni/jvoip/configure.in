@@ -1,0 +1,507 @@
+AC_INIT(configure.in)
+
+#JVOIP_CFLAGS="-g -Wall -Werror"
+JVOIP_CFLAGS="-O3"
+JVOIP_TARGETS=dummymsg
+JVOIP_ARFLAGS=
+JVOIP_LDFLAGS=
+JVOIP_CXXLINKFLAGS=
+JVOIP_JRTPLIBINCLUDES=""
+JVOIP_JTHREADINCLUDES=""
+JVOIP_DIRECTORIES="src"
+JVOIP_SPEEXINCLUDES=""
+
+JVOIPDISABLE_COMPRESSION_GSM="// GSM compression enabled"
+JVOIPDISABLE_COMPRESSION_LPC="// LPC compression enabled"
+JVOIPDISABLE_COMPRESSION_SILENCESUPPRESSION="// Silence suppression module enabled"
+JVOIPDISABLE_COMPRESSION_DPCM="// DPCM compression enabled"
+JVOIPDISABLE_COMPRESSION_ULAW="// ULAW encoder enabled"
+JVOIPDISABLE_COMPRESSION_SPEEX="// Speex compression enabled"
+JVOIPDISABLE_LOCALISATION_SIMPLE="// Simple localisation scheme enabled"
+JVOIPDISABLE_LOCALISATION_HRTF="// HRTF based localisation scheme enabled"
+JVOIPDISABLE_IO_FILE="// File IO (using libsndfile) enabled"
+
+JVOIPDISABLED=
+
+SPEEX_CHECK="yes"
+SPEEX_GOT="no"
+LIBSNDFILE_CHECK="yes"
+LIBSNDFILE_GOT="no"
+
+dnl ---------------------------------------------------------------------------
+dnl Check components
+dnl ---------------------------------------------------------------------------
+
+AC_ARG_ENABLE(gsm,[  --disable-gsm           Disable GSM compression],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_COMPRESSION_GSM="#define JVOIPDISABLE_COMPRESSION_GSM";
+                    JVOIPDISABLED="$JVOIPDISABLED    GSM compression module\n"
+		fi ], [])
+AC_ARG_ENABLE(lpc,[  --disable-lpc           Disable LPC compression],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_COMPRESSION_LPC="#define JVOIPDISABLE_COMPRESSION_LPC";
+                    JVOIPDISABLED="$JVOIPDISABLED    LPC compression module\n"
+		fi ], [])
+AC_ARG_ENABLE(silsup,[  --disable-silsup        Disable silence suppression module],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_COMPRESSION_SILENCESUPPRESSION="#define JVOIPDISABLE_COMPRESSION_SILENCESUPPRESSION";
+                    JVOIPDISABLED="$JVOIPDISABLED    Silence suppression module\n"
+		fi ], [])
+AC_ARG_ENABLE(dpcm,[  --disable-dpcm          Disable DPCM compression],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_COMPRESSION_DPCM="#define JVOIPDISABLE_COMPRESSION_DPCM";
+                    JVOIPDISABLED="$JVOIPDISABLED    DPCM compression module\n"
+		fi ], [])
+AC_ARG_ENABLE(ulaw,[  --disable-ulaw          Disable u-law encoder],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_COMPRESSION_ULAW="#define JVOIPDISABLE_COMPRESSION_ULAW";
+                    JVOIPDISABLED="$JVOIPDISABLED    U-law encoder\n"
+		fi ], [])
+AC_ARG_ENABLE(speex,[  --disable-speex         Disable Speex compression],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_COMPRESSION_SPEEX="#define JVOIPDISABLE_COMPRESSION_SPEEX";
+                    JVOIPDISABLED="$JVOIPDISABLED    Speex compression module\n"
+		    SPEEX_CHECK="no"
+		fi ], [])
+AC_ARG_ENABLE(simploc,[  --disable-simploc       Disable simple localisation scheme],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_LOCALISATION_SIMPLE="#define JVOIPDISABLE_LOCALISATION_SIMPLE";
+                    JVOIPDISABLED="$JVOIPDISABLED    Simple localisation scheme\n"
+		fi ], [])
+AC_ARG_ENABLE(hrtfloc,[  --disable-hrtfloc       Disable HRTF based localisation scheme],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_LOCALISATION_HRTF="#define JVOIPDISABLE_LOCALISATION_HRTF";
+                    JVOIPDISABLED="$JVOIPDISABLED    HRTF based localisation scheme\n"
+		fi ], [])
+AC_ARG_ENABLE(fileio,[  --disable-fileio        Disable file IO routines (uses libsndfile)],
+	      [ if test $enableval = "no" ; 
+	            then JVOIPDISABLE_IO_FILE="#define JVOIPDISABLE_IO_FILE";
+                    JVOIPDISABLED="$JVOIPDISABLED    File IO modules\n"
+		    LIBSNDFILE_CHECK="no"
+		fi ], [])
+
+
+dnl ---------------------------------------------------------------------------
+dnl Some compiler checks
+dnl ---------------------------------------------------------------------------
+
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_CC_C_O
+if test "$ac_cv_prog_cc_c_o" = no ; then
+	AC_MSG_ERROR(Compiler must be able to handle flags -c and -o simultaneously)
+fi
+AC_LANG(C++)
+
+dnl ---------------------------------------------------------------------------
+dnl Check if we can link using the C++ compiler
+dnl ---------------------------------------------------------------------------
+
+USE_CXXLINK=no
+AC_MSG_CHECKING(if we can link using $CXX)
+echo "int main(void){return 0;}" > configtest.c
+if eval $CXX -c -o configtest.o configtest.c 2>/dev/null; then
+	if eval $CXX -shared -Wl,-soname,conftest -o conftest.so configtest.o 2>/dev/null; then
+		USE_CXXLINK=yes
+		JVOIP_TARGETS="sharedlib_cxx"
+		AC_MSG_RESULT(yes)
+	else
+		AC_MSG_RESULT(no)
+	fi
+	rm -f configtest.c configtest.so configtest.o 2>/dev/null
+fi	
+
+dnl ---------------------------------------------------------------------------
+dnl Check if 'ld' exists and which syntax to use
+dnl ---------------------------------------------------------------------------
+
+if test "$USE_CXXLINK" = no ; then
+	USE_LD=no
+	AC_CHECK_PROGS(JVOIP_LD,ld,"notfound")
+	if test "$JVOIP_LD" != notfound ; then
+		AC_MSG_CHECKING(arguments for ld)
+		echo "int main(void){return 0;}" > configtest.c
+		if eval $CC -c -o configtest.o configtest.c 2>/dev/null; then
+			
+			dnl Check format gnu ld uses
+			if eval $JVOIP_LD -shared -soname conftest -o conftest.so configtest.o 2>/dev/null; then
+				JVOIP_LDFLAGS="-shared -soname"
+				USE_LD=yes
+			
+			dnl Check solaris format
+			elif eval $JVOIP_LD -G -h conftest -o conftest.so configtest.o 2>/dev/null; then
+				JVOIP_LDFLAGS="-G -h"
+				USE_LD=yes
+			fi
+		fi	
+		
+		if test "$USE_LD" = yes ; then
+			AC_MSG_RESULT($JVOIP_LDFLAGS)
+		else
+			AC_MSG_RESULT(unknown)
+		fi
+			
+		rm -rf configtest.o configtest.c conftest.so 2>/dev/null
+	fi
+	
+	if test "$USE_LD" = yes ; then
+		JVOIP_TARGETS="sharedlib_ld"
+	else
+		AC_MSG_WARN(Won't be able to generate shared library)
+	fi
+fi
+
+dnl ---------------------------------------------------------------------------
+dnl Check if 'ar' exists and which syntax to use
+dnl ---------------------------------------------------------------------------
+
+USE_AR=no
+AC_CHECK_PROGS(JVOIP_AR,ar,"notfound")
+if test "$JVOIP_AR" != notfound ; then
+	AC_MSG_CHECKING(arguments for ar)
+	echo "int main(void){return 0;}" > configtest.c
+	if eval $CC -c -o configtest.o configtest.c 2>/dev/null; then
+		
+		dnl Check format gnu ar uses
+		if eval $JVOIP_AR qc conftest.a configtest.o 2>/dev/null; then
+			JVOIP_ARFLAGS="qc"
+			USE_AR=yes
+		
+		dnl Check solaris format
+		elif eval $JVOIP_AR -r -u -c conftest.a configtest.o 2>/dev/null; then
+			JVOIP_ARFLAGS="-r -u -c"
+			USE_AR=yes
+		fi
+	fi	
+	
+	if test "$USE_AR" = yes ; then
+		AC_MSG_RESULT($JVOIP_ARFLAGS)
+	else
+		AC_MSG_RESULT(unknown)
+	fi
+		
+	rm -rf configtest.o configtest.c conftest.a 2>/dev/null
+fi
+
+if test "$USE_AR" = yes ; then
+	if test "$JVOIP_TARGETS" != dummymsg ; then
+		JVOIP_TARGETS="$JVOIP_TARGETS staticlib"
+	else
+		JVOIP_TARGETS=staticlib
+	fi
+else
+	AC_MSG_WARN(Won't be able to generate static library)
+fi
+
+dnl ---------------------------------------------------------------------------
+dnl Check for the jrtplib headers
+dnl ---------------------------------------------------------------------------
+
+searchdirs="/usr/include/jrtplib /usr/local/include/jrtplib /usr/include/jrtplib3 /usr/local/include/jrtplib3"
+
+AC_MSG_CHECKING(for JRTPLIB include files)
+AC_ARG_WITH(jrtplib-includes,[  --with-jrtplib-includes Directory where JRTPLIB 3.x.x include files are located],
+	[
+	if test -e "$withval"/rtplibraryversion.h ; then
+		JVOIP_JRTPLIBINCLUDES="$withval"
+		AC_MSG_RESULT(in $withval)
+	else
+		AC_MSG_RESULT(not found)
+		AC_MSG_ERROR(The JRTPLIB 3.x.x include files were not found in $withval)
+	fi
+	],
+	[
+		for i in $searchdirs ; do
+			if test -e $i/rtplibraryversion.h ; then
+				JVOIP_JRTPLIBINCLUDES="$i"
+				AC_MSG_RESULT(in $i)
+				break
+			fi
+		done
+		if test "BLAAI$JVOIP_JRTPLIBINCLUDES" = "BLAAI" ; then
+			AC_MSG_RESULT(not found)
+			AC_MSG_ERROR("Unable to locate the JRTPLIB 3.x.x include files."\
+			             "Please specify the include path with --with-jrtplib-includes")
+		fi
+	])
+
+AC_MSG_CHECKING(if JRTPLIB was compiled with JThread support)
+AC_COMPILE_IFELSE([ 
+		   #include "$JVOIP_JRTPLIBINCLUDES/rtpconfig.h"
+		   int main(void)
+		   {
+		   #ifndef RTP_SUPPORT_THREAD
+		   	   blablabla // generate an error
+		   #endif
+			   return 0;
+		   }],[ AC_MSG_RESULT(yes) ],
+		   [ AC_MSG_RESULT(no)
+		     AC_MSG_ERROR(JRTPLIB has to be compiled with JThread support) ])
+
+dnl ---------------------------------------------------------------------------
+dnl Check for the jthread headers
+dnl ---------------------------------------------------------------------------
+
+searchdirs="/usr/include/jthread /usr/local/include/jthread"
+
+AC_MSG_CHECKING(for JThread include files)
+AC_ARG_WITH(jthread-includes,[  --with-jthread-includes Directory where JThread include files are located],
+	[
+	if test -e "$withval"/jthread.h && test -e "$withval"/jmutex.h ; then
+		JVOIP_JTHREADINCLUDES="$withval"
+		AC_MSG_RESULT(in $withval)
+	else
+		AC_MSG_RESULT(not found)
+		AC_MSG_ERROR(The JThread include files were not found in $withval)
+	fi
+	],
+	[
+		for i in $searchdirs ; do
+			if test -e $i/jthread.h && test -e $i/jmutex.h ; then
+				JVOIP_JTHREADINCLUDES="$i"
+				AC_MSG_RESULT(in $i)
+				break
+			fi
+		done
+		if test "BLAAI$JVOIP_JTHREADINCLUDES" = "BLAAI" ; then
+			AC_MSG_RESULT(not found)
+			AC_MSG_ERROR("Unable to locate the JThread include files."\
+			             "Please specify the include path with --with-jthread-includes")
+		fi
+	])
+
+AC_MSG_CHECKING(JThread version)
+echo -e "#include <jthread.h>\n class MyThread : public JThread { void *Thread() { JThread::ThreadStarted(); } }; int main(void){return 0;}" > configtest.cpp
+if eval $CXX -I $JVOIP_JTHREADINCLUDES -c -o configtest.o configtest.cpp 2>/dev/null; then
+	AC_MSG_RESULT(>= 1.1.0)
+else
+	AC_MSG_RESULT(< 1.1.0)
+	AC_MSG_ERROR(You need at least JThread version 1.1.0)
+fi
+rm -f configtest.{cpp,o}
+
+dnl ---------------------------------------------------------------------------
+dnl Speex stuff
+dnl ---------------------------------------------------------------------------
+
+if test $SPEEX_CHECK = "yes" ; then
+	AC_MSG_CHECKING(for Speex include files)
+	AC_ARG_WITH(speex-includes,[  --with-speex-includes  Directory where Speex include files are located],
+	[
+		if test -e "$withval"/speex.h ; then
+			JVOIP_SPEEXINCLUDES="-I $withval"
+			AC_MSG_RESULT(in $withval)
+			SPEEX_GOT="yes"
+		else
+			AC_MSG_RESULT(not found in specified location)
+		fi
+	],
+	[
+		echo -e "#include <speex.h>\n int main(void){return 0;}" > configtest.cpp
+		if eval $CXX -c -o configtest.o configtest.cpp 2>/dev/null; then
+			AC_MSG_RESULT(no additional include path necessary)
+			SPEEX_GOT="yes"
+		else
+			searchdirs="/usr/include/speex /usr/local/include/speex"
+			for i in $searchdirs ; do
+				if test -e $i/speex.h ; then
+					JVOIP_SPEEXINCLUDES="-I $i"
+					AC_MSG_RESULT(in $i)
+					SPEEX_GOT="yes"
+					break
+				fi
+			done
+			if test "BLAAI$JVOIP_SPEEXINCLUDES" = "BLAAI" ; then
+				AC_MSG_RESULT(not found)
+				AC_MSG_WARN("Unable to locate the Speex include files."\
+				             "Please specify the include path with --with-speex-includes.")
+			fi
+		fi
+		rm -f configtest.{cpp,o}
+	])
+	if test $SPEEX_GOT = "no" ; then
+		AC_MSG_WARN(Speex compression support is disabled.)
+		JVOIPDISABLED="$JVOIPDISABLED    Speex compression module\n"
+		JVOIPDISABLE_COMPRESSION_SPEEX="#define JVOIPDISABLE_COMPRESSION_SPEEX"
+	fi
+fi
+
+dnl ---------------------------------------------------------------------------
+dnl libsndfile stuff
+dnl ---------------------------------------------------------------------------
+
+if test $LIBSNDFILE_CHECK = "yes" ; then
+	AC_MSG_CHECKING(for libsndfile)
+	echo -e "#include <sndfile.h>\n int main(void){return 0;}" > configtest.cpp
+	if eval $CXX -c -o configtest.o configtest.cpp 2>/dev/null; then
+		AC_MSG_RESULT(found)
+		LIBSNDFILE_GOT="yes"
+	fi
+	rm -f configtest.{cpp,o}
+	if test $LIBSNDFILE_GOT = "no" ; then
+		AC_MSG_WARN(File IO using libsndfile is disabled.)
+		JVOIPDISABLED="$JVOIPDISABLED    File IO modules\n"
+		JVOIPDISABLE_IO_FILE="#define JVOIPDISABLE_IO_FILE"
+	fi
+fi
+
+
+dnl ---------------------------------------------------------------------------
+dnl add -ljthread -ljrtp -lspeex -lsndfile if possible
+dnl ---------------------------------------------------------------------------
+
+if test "$USE_CXXLINK" = yes ; then
+	AC_MSG_CHECKING(if we can link against jthread)
+	echo "int main(void){return 0;}" > configtest.c
+	if eval $CXX -c -o configtest.o configtest.c 2>/dev/null; then
+		if eval $CXX -shared -Wl,-soname,conftest -o conftest.so configtest.o -ljthread 2>/dev/null; then
+			JVOIP_CXXLINKFLAGS="-ljthread $JVOIP_CXXLINKFLAGS"
+			AC_MSG_RESULT(yes)
+		else
+			AC_MSG_RESULT(no)
+		fi
+	fi
+	rm -f configtest.c configtest.so configtest.o 2>/dev/null
+	
+	AC_MSG_CHECKING(if we can link against jrtplib)
+	echo "int main(void){return 0;}" > configtest.c
+	if eval $CXX -c -o configtest.o configtest.c 2>/dev/null; then
+		if eval $CXX -shared -Wl,-soname,conftest -o conftest.so configtest.o -ljrtp 2>/dev/null; then
+			JVOIP_CXXLINKFLAGS="-ljrtp $JVOIP_CXXLINKFLAGS"
+			AC_MSG_RESULT(yes)
+		else
+			AC_MSG_RESULT(no)
+		fi
+	fi
+	rm -f configtest.c configtest.so configtest.o 2>/dev/null
+
+	if test $SPEEX_GOT = "yes" ; then
+		AC_MSG_CHECKING(if we can link against the Speex library)
+		echo "int main(void){return 0;}" > configtest.c
+		if eval $CXX -c -o configtest.o configtest.c 2>/dev/null; then
+			if eval $CXX -shared -Wl,-soname,conftest -o conftest.so configtest.o -lspeex 2>/dev/null; then
+				JVOIP_CXXLINKFLAGS="-lspeex $JVOIP_CXXLINKFLAGS"
+				AC_MSG_RESULT(yes)
+			else
+				AC_MSG_RESULT(no)
+			fi
+		fi
+		rm -f configtest.c configtest.so configtest.o 2>/dev/null
+	fi
+	if test $LIBSNDFILE_GOT = "yes" ; then
+		AC_MSG_CHECKING(if we can link against the libsndfile library)
+		echo "int main(void){return 0;}" > configtest.c
+		if eval $CXX -c -o configtest.o configtest.c 2>/dev/null; then
+			if eval $CXX -shared -Wl,-soname,conftest -o conftest.so configtest.o -lsndfile 2>/dev/null; then
+				JVOIP_CXXLINKFLAGS="-lsndfile $JVOIP_CXXLINKFLAGS"
+				AC_MSG_RESULT(yes)
+			else
+				AC_MSG_RESULT(no)
+			fi
+		fi
+		rm -f configtest.c configtest.so configtest.o 2>/dev/null
+	fi
+else 
+	if test "$USE_LD" = yes ; then
+		AC_MSG_CHECKING(if we can link against jthread)
+		echo "int main(void){return 0;}" > configtest.c
+		if eval $CC -c -o configtest.o configtest.c 2>/dev/null; then
+			if eval $JVOIP_LD $JVOIP_LDFLAGS conftest -o conftest.so configtest.o -ljthread 2>/dev/null; then
+				JVOIP_LDFLAGS="-ljthread $JVOIP_LDFLAGS"
+				AC_MSG_RESULT(yes)
+			else
+				AC_MSG_RESULT(no)
+			fi
+		fi
+		rm -f configtest.c configtest.so configtest.o 2>/dev/null
+		
+		AC_MSG_CHECKING(if we can link against jrtplib)
+		echo "int main(void){return 0;}" > configtest.c
+		if eval $CC -c -o configtest.o configtest.c 2>/dev/null; then
+			if eval $JVOIP_LD $JVOIP_LDFLAGS conftest -o conftest.so configtest.o -ljrtp 2>/dev/null; then
+				JVOIP_LDFLAGS="-ljrtp $JVOIP_LDFLAGS"
+				AC_MSG_RESULT(yes)
+			else
+				AC_MSG_RESULT(no)
+			fi
+		fi
+		rm -f configtest.c configtest.so configtest.o 2>/dev/null
+		
+		if test $SPEEX_GOT = "yes" ; then
+			AC_MSG_CHECKING(if we can link against the Speex library)
+			echo "int main(void){return 0;}" > configtest.c
+			if eval $CXX -c -o configtest.o configtest.c 2>/dev/null; then
+				if eval $JVOIP_LD $JVOIP_LDFLAGS conftest -o conftest.so configtest.o -lspeex 2>/dev/null; then
+					JVOIP_CXXLINKFLAGS="-lspeex $JVOIP_CXXLINKFLAGS"
+					AC_MSG_RESULT(yes)
+				else
+					AC_MSG_RESULT(no)
+				fi
+			fi
+			rm -f configtest.c configtest.so configtest.o 2>/dev/null
+		fi
+		if test $LIBSNDFILE_GOT = "yes" ; then
+			AC_MSG_CHECKING(if we can link against the libsndfile library)
+			echo "int main(void){return 0;}" > configtest.c
+			if eval $CXX -c -o configtest.o configtest.c 2>/dev/null; then
+				if eval $JVOIP_LD $JVOIP_LDFLAGS conftest -o conftest.so configtest.o -lsndfile 2>/dev/null; then
+					JVOIP_CXXLINKFLAGS="-lsndfile $JVOIP_CXXLINKFLAGS"
+					AC_MSG_RESULT(yes)
+				else
+					AC_MSG_RESULT(no)
+				fi
+			fi
+			rm -f configtest.c configtest.so configtest.o 2>/dev/null
+		fi
+	fi
+fi
+
+dnl ---------------------------------------------------------------------------
+dnl Report on disabled components
+dnl ---------------------------------------------------------------------------
+
+if test "BLAAI$JVOIPDISABLED" != "BLAAI" ; then
+	echo
+	echo "Disabled features:"
+	echo -e "$JVOIPDISABLED"
+fi
+	
+dnl ---------------------------------------------------------------------------
+dnl Finish
+dnl ---------------------------------------------------------------------------
+
+AC_SUBST(JVOIP_CFLAGS)
+AC_SUBST(JVOIP_JRTPLIBINCLUDES)
+AC_SUBST(JVOIP_JTHREADINCLUDES)
+AC_SUBST(JVOIP_SPEEXINCLUDES)
+AC_SUBST(JVOIP_DIRECTORIES)
+AC_SUBST(JVOIP_TARGETS)
+AC_SUBST(JVOIP_ARFLAGS)
+AC_SUBST(JVOIP_LDFLAGS)
+AC_SUBST(JVOIP_CXXLINKFLAGS)
+AC_SUBST(JVOIPDISABLE_COMPRESSION_GSM)
+AC_SUBST(JVOIPDISABLE_COMPRESSION_LPC)
+AC_SUBST(JVOIPDISABLE_COMPRESSION_SILENCESUPPRESSION)
+AC_SUBST(JVOIPDISABLE_COMPRESSION_DPCM)
+AC_SUBST(JVOIPDISABLE_COMPRESSION_ULAW)
+AC_SUBST(JVOIPDISABLE_COMPRESSION_SPEEX)
+AC_SUBST(JVOIPDISABLE_LOCALISATION_SIMPLE)
+AC_SUBST(JVOIPDISABLE_LOCALISATION_HRTF)
+AC_SUBST(JVOIPDISABLE_IO_FILE)
+AC_OUTPUT(Makefile \
+	  src/jvoipconfig_unix.h \
+	  src/Makefile \
+	  src/componentframework/Makefile \
+	  src/libcomponents/Makefile \
+	  src/libcomponents/base/Makefile \
+	  src/libcomponents/impl/Makefile \
+	  src/libcomponents/impl/oss/Makefile \
+          src/thirdparty/Makefile \
+	  src/thirdparty/gsm/Makefile \
+	  src/thirdparty/gsm/src/Makefile \
+	  src/thirdparty/lpc/Makefile \
+	  testutil/Makefile \
+	  testutil/Qt/Makefile.in \
+	  doc/Makefile
+	  )
+

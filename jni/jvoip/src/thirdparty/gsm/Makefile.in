@@ -1,0 +1,14 @@
+SUBDIRS = src
+
+all:
+	@for i in $(SUBDIRS) ; do\
+		if ! (cd $$i ; make) ; then\
+			exit 1;\
+		fi;\
+	done
+	
+clean:
+	@for i in $(SUBDIRS) ; do\
+		(cd $$i ; make clean) ;\
+	done
+

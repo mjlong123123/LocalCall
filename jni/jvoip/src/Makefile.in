@@ -1,0 +1,44 @@
+CXX		= @CXX@
+CFLAGS		= @JVOIP_CFLAGS@
+INCLUDES	= -I @JVOIP_JTHREADINCLUDES@ -I ./libcomponents/base -I ./componentframework -I ./ \
+                  -I ./libcomponents/impl/oss -I ./libcomponents/impl -I ./preallocmem
+
+SUBDIRS 	= componentframework libcomponents thirdparty
+JVOIPLIBDIR	= ../lib/
+JVOIPINCLUDEDIR	= ../include/
+OBJECTS 	= jvoipsession.o jvoipsessionparams.o jvoipthread.o jvoipsigwait.o \
+		  jvoiperrors.o debugnew.o
+
+all: $(OBJECTS)
+	@for i in $(SUBDIRS) ; do\
+		if ! (cd $$i ; make) ; then\
+			exit 1;\
+		fi;\
+	done
+	cp -f $(OBJECTS) $(JVOIPLIBDIR)
+	cp -f *.h $(JVOIPINCLUDEDIR)
+	
+clean:
+	@for i in $(SUBDIRS) ; do\
+		(cd $$i ; make clean) ;\
+	done
+	rm -f $(OBJECTS)
+
+jvoipsession.o: jvoipsession.cpp jvoipsession.h jvoiptypes.h jvoipthread.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsession.o jvoipsession.cpp
+	
+jvoipsessionparams.o: jvoipsessionparams.cpp jvoipsessionparams.h jvoiptypes.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsessionparams.o jvoipsessionparams.cpp
+
+jvoipthread.o: jvoipthread.cpp jvoipthread.h 
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipthread.o jvoipthread.cpp
+
+jvoipsigwait.o: jvoipsigwait.cpp jvoipsigwait.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsigwait.o jvoipsigwait.cpp
+
+jvoiperrors.o: jvoiperrors.cpp jvoiperrors.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoiperrors.o jvoiperrors.cpp
+
+debugnew.o: debugnew.cpp debugnew.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o debugnew.o debugnew.cpp
+

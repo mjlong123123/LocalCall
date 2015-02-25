@@ -1,0 +1,22 @@
+CXX		= @CXX@
+CFLAGS		= @JVOIP_CFLAGS@
+INCLUDES	= -I ../
+JVOIPLIBDIR	= ../../lib/
+JVOIPINCLUDEDIR	= ../../include/
+
+OBJECTS		= voicecall.o voiceblock.o
+
+all: $(OBJECTS)
+	cp -f $(OBJECTS) $(JVOIPLIBDIR)
+	cp -f *.h $(JVOIPINCLUDEDIR)
+	
+clean:
+	rm -f $(OBJECTS)
+
+voicecall.o: voicecall.cpp voicecall.h location3d.h sampleinput.h sampleoutput.h\
+             samplingtimer.h transform3d.h voiceblock.h voicecompressor.h\
+             voicedecompressor.h voicemixer.h voicetransmitter.h voicetypes.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o voicecall.o voicecall.cpp
+
+voiceblock.o: voiceblock.cpp voiceblock.h voicetypes.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o voiceblock.o voiceblock.cpp

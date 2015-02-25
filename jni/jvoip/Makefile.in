@@ -1,0 +1,149 @@
+SUBDIRS = @JVOIP_DIRECTORIES@
+CXX	= @CXX@
+
+JVOIPLIB_NAME		= libjvoip
+JVOIPLIB_VERS_MAJOR	= 1
+JVOIPLIB_VERS_MINOR	= 4
+JVOIPLIB_VERS_DEBUG	= 1
+JVOIPLIB_STATIC		= $(JVOIPLIB_NAME).a
+JVOIPLIB_DYNAMIC	= $(JVOIPLIB_NAME).so.$(JVOIPLIB_VERS_MAJOR).$(JVOIPLIB_VERS_MINOR).$(JVOIPLIB_VERS_DEBUG)
+JVOIPLIB_DYNAMIC_INTERN	= $(JVOIPLIB_NAME).so.$(JVOIPLIB_VERS_MAJOR).$(JVOIPLIB_VERS_MINOR)
+JVOIPLIB_DYNAMIC_SHORT	= $(JVOIPLIB_NAME).so
+
+DISTRIBDIRS		= doc include lib src examples testutil
+DISTRIBFILES		= ChangeLog Makefile.in configure configure.in LICENSE.LGPL README.TXT jvoiplib.sln jvoiplib.vcproj
+DISTRIBARCHIVEDIR	= jvoiplib-$(JVOIPLIB_VERS_MAJOR).$(JVOIPLIB_VERS_MINOR).$(JVOIPLIB_VERS_DEBUG)
+SNAPSHOTARCHIVEDIR	= jvoiplib-`date +"%Y%m%d"`
+
+LDFLAGS 		= @JVOIP_LDFLAGS@
+ARFLAGS 		= @JVOIP_ARFLAGS@
+CXXLINKFLAGS		= @JVOIP_CXXLINKFLAGS@
+
+LIBRARYDIR 		= @prefix@/lib
+INCLUDEDIR 		= @prefix@/include/jvoiplib
+
+all: @JVOIP_TARGETS@
+
+dummymsg:
+	@echo "Nothing to build"
+
+staticlib:
+	@for i in $(SUBDIRS) ; do\
+		if ! (cd $$i ; make) ; then\
+			exit 1;\
+		fi;\
+	done
+	rm -f $(JVOIPLIB_STATIC)
+	ar $(ARFLAGS) $(JVOIPLIB_STATIC) lib/*.o
+
+sharedlib_ld:
+	@for i in $(SUBDIRS) ; do\
+		if ! (cd $$i ; make) ; then\
+			exit 1;\
+		fi;\
+	done
+	rm -f $(JVOIPLIB_DYNAMIC)
+	ld $(LDFLAGS) $(JVOIPLIB_DYNAMIC_INTERN) -o $(JVOIPLIB_DYNAMIC) lib/*.o
+	
+sharedlib_cxx:
+	@for i in $(SUBDIRS) ; do\
+		if ! (cd $$i ; make) ; then\
+			exit 1;\
+		fi;\
+	done
+	rm -f $(JVOIPLIB_DYNAMIC)
+	$(CXX) -shared -Wl,-soname,$(JVOIPLIB_DYNAMIC_INTERN) $(CXXLINKFLAGS) -o $(JVOIPLIB_DYNAMIC) lib/*.o
+
+clean:
+	@for i in $(SUBDIRS) testutil ; do\
+		(cd $$i ; make clean) ;\
+	done
+	(cd doc; make clean)
+	(cd lib; rm -f *.o)
+	(cd include; rm -f *.h)
+	rm -f $(JVOIPLIB_STATIC) $(JVOIPLIB_DYNAMIC)
+
+distclean: clean
+	rm -f `find . -name "Makefile"`
+	rm -f testutil/Qt/Makefile.in
+	rm -f config.log
+	rm -f config.cache
+	rm -f config.status
+	rm -fr $(DISTRIBARCHIVEDIR)
+	rm -f $(DISTRIBARCHIVEDIR).tar
+	rm -f $(DISTRIBARCHIVEDIR).tar.gz
+	rm -f $(DISTRIBARCHIVEDIR).tar.bz2
+	rm -f $(DISTRIBARCHIVEDIR).zip
+	rm -fr $(SNAPSHOTARCHIVEDIR)
+	rm -f $(SNAPSHOTARCHIVEDIR).tar
+	rm -f $(SNAPSHOTARCHIVEDIR).tar.gz
+	rm -f $(SNAPSHOTARCHIVEDIR).tar.bz2
+	rm -f $(SNAPSHOTARCHIVEDIR).zip
+	rm -f .findscript
+
+snapshot: clean
+	rm -fr $(SNAPSHOTARCHIVEDIR)
+	mkdir $(SNAPSHOTARCHIVEDIR)
+	cp -f $(DISTRIBFILES) $(SNAPSHOTARCHIVEDIR)
+	todos < jvoiplib.dsp >$(SNAPSHOTARCHIVEDIR)/jvoiplib.dsp
+	todos < jvoiplib.dsw >$(SNAPSHOTARCHIVEDIR)/jvoiplib.dsw
+	todos < copyheaderfiles.bat >$(SNAPSHOTARCHIVEDIR)/copyheaderfiles.bat
+	cp -rf $(DISTRIBDIRS) $(SNAPSHOTARCHIVEDIR)
+	todos < testutil/MFC/JVOIPTestUtil.dsw >$(SNAPSHOTARCHIVEDIR)/testutil/MFC/JVOIPTestUtil.dsw 
+	todos < testutil/MFC/JVOIPTestUtil.dsp >$(SNAPSHOTARCHIVEDIR)/testutil/MFC/JVOIPTestUtil.dsp 
+	echo find $(SNAPSHOTARCHIVEDIR)/ -name "CVS">.findscript
+	chmod u+x .findscript
+	rm -rf `./.findscript`
+	echo find $(SNAPSHOTARCHIVEDIR)/ -name "Makefile">.findscript
+	chmod u+x .findscript
+	rm -rf `./.findscript`
+	rm -f $(SNAPSHOTARCHIVEDIR)/src/jvoipconfig_unix.h
+	rm -f $(SNAPSHOTARCHIVEDIR)/testutil/Qt/Makefile.in
+	tar cf $(SNAPSHOTARCHIVEDIR).tar $(SNAPSHOTARCHIVEDIR)
+	gzip -c $(SNAPSHOTARCHIVEDIR).tar > $(SNAPSHOTARCHIVEDIR).tar.gz
+	bzip2 -c $(SNAPSHOTARCHIVEDIR).tar > $(SNAPSHOTARCHIVEDIR).tar.bz2
+	echo find $(SNAPSHOTARCHIVEDIR) >.findscript
+	chmod u+x .findscript
+	zip $(SNAPSHOTARCHIVEDIR).zip `./.findscript`
+	rm -f $(SNAPSHOTARCHIVEDIR).tar
+	rm -fr $(SNAPSHOTARCHIVEDIR)
+	rm -f .findscript
+
+dist: clean
+	rm -fr $(DISTRIBARCHIVEDIR)
+	mkdir $(DISTRIBARCHIVEDIR)
+	cp -f $(DISTRIBFILES) $(DISTRIBARCHIVEDIR)
+	todos < jvoiplib.dsp >$(DISTRIBARCHIVEDIR)/jvoiplib.dsp
+	todos < jvoiplib.dsw >$(DISTRIBARCHIVEDIR)/jvoiplib.dsw
+	todos < copyheaderfiles.bat >$(DISTRIBARCHIVEDIR)/copyheaderfiles.bat
+	cp -rf $(DISTRIBDIRS) $(DISTRIBARCHIVEDIR)
+	todos < testutil/MFC/JVOIPTestUtil.dsw >$(DISTRIBARCHIVEDIR)/testutil/MFC/JVOIPTestUtil.dsw 
+	todos < testutil/MFC/JVOIPTestUtil.dsp >$(DISTRIBARCHIVEDIR)/testutil/MFC/JVOIPTestUtil.dsp 
+	rm -rf `find $(DISTRIBARCHIVEDIR)/ -name "CVS"`
+	rm -rf `find $(DISTRIBARCHIVEDIR)/ -name "Makefile"`
+	rm -f $(DISTRIBARCHIVEDIR)/src/jvoipconfig_unix.h
+	rm -f $(DISTRIBARCHIVEDIR)/testutil/Qt/Makefile.in
+	tar cf $(DISTRIBARCHIVEDIR).tar $(DISTRIBARCHIVEDIR)
+	gzip -c $(DISTRIBARCHIVEDIR).tar > $(DISTRIBARCHIVEDIR).tar.gz
+	bzip2 -c $(DISTRIBARCHIVEDIR).tar > $(DISTRIBARCHIVEDIR).tar.bz2
+	zip $(DISTRIBARCHIVEDIR).zip `find $(DISTRIBARCHIVEDIR)`
+	rm -f $(DISTRIBARCHIVEDIR).tar
+	rm -fr $(DISTRIBARCHIVEDIR)
+
+install: all
+	if ! test -d $(LIBRARYDIR) ; then \
+		mkdir -m 755 -p $(LIBRARYDIR) ; \
+	fi
+	if ! test -d $(INCLUDEDIR) ; then \
+		mkdir -m 755 -p $(INCLUDEDIR) ; \
+	fi
+	if test -e $(JVOIPLIB_STATIC) ; then \
+		install -m 644 $(JVOIPLIB_STATIC) $(LIBRARYDIR) ; \
+	fi
+	if test -e $(JVOIPLIB_DYNAMIC) ; then \
+		install -m 755 $(JVOIPLIB_DYNAMIC) $(LIBRARYDIR) ; \
+	fi
+	install -m 644 include/*.h $(INCLUDEDIR)
+	(cd $(LIBRARYDIR) ; ln -sf $(JVOIPLIB_DYNAMIC) $(JVOIPLIB_DYNAMIC_SHORT) )
+	(cd $(LIBRARYDIR) ; ln -sf $(JVOIPLIB_DYNAMIC) $(JVOIPLIB_DYNAMIC_INTERN) )
+

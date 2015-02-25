@@ -1,0 +1,578 @@
+\chapter{Using the library}
+In this chapter I'll explain how you can use the library. First I'll
+give some more information about how the {\tt JVOIPSession} class can
+be used. Then, I'll give some more information about the implemented
+components.
+
+	\section{A simple VoIP session}
+	
+	The library is written in such a way that you can create a basic
+	VoIP session with only a few lines of code. The following example
+	would create a VoIP session, wait for the user to give some input
+	and destroy the VoIP session.
+	\begin{lstlisting}[frame=tb]{}
+#include "jvoipsession.h"
+#include <stdio.h>
+
+int main(void)
+{
+	JVOIPSession session;
+	JVOIPSessionParams params;
+
+	session.Create(params);
+	fgetc(stdin);
+	session.Destroy();
+
+	return 0;
+}
+	\end{lstlisting}
+	
+	However, if you try this you won't see (or hear) much happening. The
+	reason for this is that we haven't specified a destination yet.
+	
+	In the example above, we simply specified an instance of {\tt JVOIP\-Session\-Params}
+	as the session parameters. We didn't specify anything ourselves, so
+	we're using the default parameters. These are:
+	\begin{itemize}
+		\item soundcard input \& soundcard output
+		\item no localisation scheme
+		\item no compression
+		\item the default mixer
+		\item the RTP transmission module
+		\item accept all incoming packets
+		\item eight bits per sample
+		\item 20 ms sample interval
+		\item 8000 Hz input sampling rate
+		\item 8000 Hz output sampling rate
+	\end{itemize}
+	The component parameters are all set to {\tt NULL}, which will cause the
+	components to use their default parameters.
+	
+	Now, suppose we would like to make an application that sends data to
+	an address specified by the user, at port 5000. If two such applications
+	are running on different hosts and they would be sending data to each
+	other, you have your first working VoIP program\footnote{The default
+	portbase of the RTP transmission module is 5000}.
+	
+	The example would become something like this:
+	\begin{lstlisting}[frame=tb]{}
+#include "jvoipsession.h"
+#include <stdio.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
+int main(void)
+{
+	JVOIPSession session;
+	JVOIPSessionParams params;
+	char str_addr[255];
+	unsigned long ip;
+
+	printf("Enter the destination address:\n");
+	scanf("%s",str_addr);
+	fgetc(stdin); // read the current end-of-line character
+	ip = inet_addr(str_addr);
+	ip = ntohl(ip);
+
+	session.Create(params);
+	session.AddDestination(ip,5000);
+
+	fgetc(stdin);
+	session.Destroy();
+
+	return 0;
+}
+
+	\end{lstlisting}
+	
+	\section{Error handling}
+	
+		\subsection{Failed function calls}
+		
+		Most functions of the library return an {\tt int}. If these functions
+		are successfull, they have a return value of zero or more. Otherwise,
+		they return a negative value. 
+		
+		When an error did occur, you can always call the {\tt JVOIP\-Session} 
+		member function {\tt IsActive} to find out if the error has caused the destruction 
+		of the session. The library does its best to avoid this, but in some
+		cases it's not possible to recover from an error.
+		
+		The library contains a function called {\tt JVOIP\-Get\-Error\-String}
+		which takes an error code as its argument. The function then returns
+		a string which describes the error. Its syntax is this:
+		\begin{lstlisting}[frame=tb]{}
+std::string JVOIPGetErrorString(int errcode);
+		\end{lstlisting}
+		
+		In the previous example, we did not perform checks on the return value
+		of the called functions. Suppose we'd define a function {\tt CheckError}
+		like this:
+		\begin{lstlisting}[frame=tb]{}
+void CheckError(int val)
+{
+	if (val >= 0)
+		return;
+		
+	std::string errstr;
+	
+	errstr = JVOIPGetErrorString(val);
+	std::cerr << errstr << std::endl;
+	exit(-1);
+}
+		\end{lstlisting}
+		
+		Then, we could easily check for errors by changing a part of the code
+		of the example program:
+		\begin{lstlisting}[frame=tb]{}
+	CheckError(session.Create(params));
+	CheckError(session.AddDestination(ip,5000));
+	
+	fgetc(stdin);
+	CheckError(session.Destroy());
+		\end{lstlisting}
+		
+		\subsection{Errors in the VoIP thread}
+		
+		Now, what if an error occurs in the VoIP thread? Since this is a background
+		process, you can't just check the return value of some function of the 
+		library's API.
+		
+		Fortunately, there is a way to check this. As was already explained in 
+		\ref{subsection-overridables}, the {\tt JVOIPSession} member function
+		{\tt Thread\-Finished\-Handler} is called whenever the VoIP thread ends.
+		The parameters of this function contain information about why the thread
+		stopped. By deriving your own class from {\tt JVOIP\-Session} and overriding
+		the function {\tt Thread\-Finished\-Handler}, you can check when and why the
+		thread ended.
+		
+		The syntax of the {\tt ThreadFinishedHandler} function is as follows:
+		\begin{lstlisting}[frame=tb]{}
+void ThreadFinishedHandler(int threaderr,
+                           int voicecallerr = 0,
+                           int componenterr = 0)
+		\end{lstlisting}
+		
+		The first argument, {\tt threaderr}, specifies why the thread ended.
+		There are two possibilities: either an error occurred in the {\tt Voice\-Call}
+		member function {\tt Step}, or the {\tt JVOIPSession} member function
+		{\tt IntervalAction} (which you can override in a derived class) returned
+		{\tt false}. In the first case, {\tt threaderr} contains the value 
+		{\tt ERR\_\-JVOIP\-LIB\_\-VOIP\-THREAD\_\-VOICE\-CALL\-ERROR}. In the second
+		case, the value will be {\tt ERR\_\-JVOIP\-LIB\_\-VOIP\-THREAD\_\-INTER\-VAL\-ACTION\-ERROR}.
+		
+		If the thread ended because {\tt IntervalAction} returned {\tt false},
+		the other arguments of {\tt Thread\-Finished\-Handler} will be zero.
+		Otherwise, they contain more information about what caused the error.
+		
+		The {\tt voicecallerr} parameter contains information about where in the
+		{\tt Step} function the error occurred. The possible values are defined
+		in the file {\tt src/\-component\-framework/\-voice\-call.h}. Note that
+		you cannot use the {\tt JVOIPGetErrorString} function to get a description
+		of this error. This is because the VoIP framework is a separate part of
+		the library. To get a description of this error code, you can call the
+		{\tt GetVoiceCallErrorString} function (in the VoIPFramework namespace).
+		
+		If the error was caused by a specific component, {\tt com\-ponent\-err}
+		specifies the error of the specific component. If the component is {\em not}
+		a user-defined component, you can get a description of the error by calling
+		the {\tt JVOIPGetErrorString} function with {\tt componenterr} as its
+		argument.
+		
+	\section{Setting component parameters}
+	Suppose we would like to create an easy test application: one that sends
+	data to itself. You could try to use the previous program and fill in the
+	local host address {\tt 127.0.0.1}, but it won't work. This is so because
+	by default the RTP transmission module is used and this module ignores
+	its own packets by default\footnote{This comes in handy when using multicasting}.
+	
+	Fortunately, you can instruct the RTP module to accept its own packets.
+	This can be done by selecting this feature in the module's parameters.
+	More concrete, we'll have to add a piece of code like this:
+	\begin{lstlisting}[frame=tb]{}
+JVOIPRTPTransmissionParams rtpparams;
+
+rtpparams.SetAcceptOwnPackets(true);
+params.SetTransmissionParams(&rtpparams);
+	\end{lstlisting}
+	Of course, this has to be done before the session parameters are used in
+	the {\tt Create} function.
+	
+	Our application code would then become something like this:
+	\begin{lstlisting}[frame=tb]{}
+#include "jvoipsession.h"
+#include "jvoiprtptransmission.h"
+#include <stdio.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
+int main(void)
+{
+	JVOIPSession session;
+	JVOIPSessionParams params;
+	JVOIPRTPTransmissionParams rtpparams;
+	unsigned long ip;
+
+	ip = inet_addr("127.0.0.1");
+	ip = ntohl(ip);
+
+	rtpparams.SetAcceptOwnPackets(true);
+	params.SetTransmissionParams(&rtpparams);
+
+	session.Create(params);
+	session.AddDestination(ip,5000);
+	fgetc(stdin);
+	session.Destroy();
+
+	return 0;
+}
+	\end{lstlisting}
+	
+	For other components, parameters can be passed in a similar way.
+	
+	\section{Changing features of an active session}
+	
+	Once the session is active, you can still change all of its features. The
+	class {\tt JVOIPSession} has several functions to do this. For example, if
+	you would like to change your sample interval to 50 ms, you simply have
+	to add a line:
+	\begin{lstlisting}[frame=tb]{}
+session.SetSampleInterval(50);
+	\end{lstlisting}
+	
+	Similarly, you can change a component type. Suppose that you would like to
+	change from a soundcard output type to no output at all, you would do
+	something like this:
+	\begin{lstlisting}[frame=tb]{}
+session.SetVoiceOutputType(JVOIPSessionParams::NoOutput,NULL);
+	\end{lstlisting}
+	
+	The same procedure has to be followed if you would like to change the
+	component parameters of the current component. There is no general way
+	to instruct a component to change a specific parameter, but you can
+	reinstall the current component type with different parameters.
+	
+	For example, suppose we would like to change the portbase of our RTP
+	transmission module to 6000. This is the way to do it:
+	\begin{lstlisting}[frame=tb]{}
+rtpparams.SetPortBase(6000);
+session.SetTransmissionType(JVOIPSessionParams::RTP,&rtpparams);
+	\end{lstlisting}
+	If you do something like this, keep in mind that you have created a new
+	instance of a module. In the example above, this would cause the loss
+	of all previously set destinations, so you'll have to add those again.
+	
+	\section{Component parameters}
+	
+	Lets take a closer look at the available parameters for the currently
+	implemented components.
+	
+		\subsection{{\tt JVOIPSoundcardInput} component}
+		
+		First, lets take a look at the soundcard input module's parameters.
+		
+			\subsubsection{Unix version}
+			
+			In the unix version, the soundcard module uses a specific soundcard
+			device. This device can be specified by passing an instance of
+			{\tt JVOIPSoundcardParams} to the component. By default, the device
+			{\tt /dev/dsp} is used:
+			
+			\begin{lstlisting}[frame=tb]{}
+class JVOIPSoundcardParams : public JVOIPComponentParams
+{
+public:
+	JVOIPSoundcardParams(const std::string &dev = "/dev/dsp", 
+	                     int multiplyfactor = 1);
+	void SetSoundDeviceName(const std::string &n);
+	void SetMultiplyFactor(int multiplyfactor);
+};
+			\end{lstlisting}
+			The multiply factor specifies the value with which samples read from
+			the soundcard should be multiplied.
+			
+			\subsubsection{MS-Windows version}
+			
+			When using MS-Windows, we can make use of its Win32 soundcard interface
+			and we do not need to specify a device like with unix. In this case,
+			we don't really need to pass component parameters.
+			
+			However, when experimenting with VoIP applications, I noticed that
+			sometimes -- probably because of a bad soundcard driver -- when you
+			do a reset of the soundcard input, suddenly the input settings are
+			messed up. If this should be the case, you can try a bugfix I wrote.
+			
+			To be safe, the bugfix is turned on by default, but if you think
+			you don't need it, you can turn it off by disabling the corresponding
+			feature in the soundcard input parameters:
+			
+			\begin{lstlisting}[frame=tb]{}
+class JVOIPSoundcardInputParams : public JVOIPComponentParams
+{
+public:
+	JVOIPSoundcardInputParams(bool resetbugfix = true);
+	void SetNastyResetBugFix(bool resetbugfix);
+};
+			\end{lstlisting}
+			
+		\subsection{{\tt JVOIPSoundcardOutput} component}
+		
+		For the soundcard output parameters, there is only a unix version.
+		Like with the soundcard input on a unix-like OS, you need to
+		specify a device. This can be done the same way as with the soundcard
+		input parameters, using the class {\tt JVOIPSoundcardParameters}.
+
+		\subsection{{\tt JVOIPFileInput} component}
+
+		The file input component takes an instance of {\tt JVOIPFileInputParams}
+		as its parameters. The constructor of this class is as follows:
+
+		\begin{lstlisting}[frame=tb]{}
+class JVOIPFileInputParams : public JVOIPComponentParams
+{
+public:
+		JVOIPFileInputParams(const std::string &filename)
+};		
+		\end{lstlisting}
+		This way, you can specify which file should be used for input. The file
+		input component uses {\tt libsndfile}\footnote{\url{http://www.mega-nerd.com/libsndfile/}}
+		to read from sound files.
+		
+		\subsection{{\tt JVOIPFileOutput} component}
+
+		The library contains a component to write to a sound file, which also
+		makes use of the {\tt libsndfile} library. The parameters it accepts
+		are described in the {\tt JVOIPFileOutputParams} class:
+		\begin{lstlisting}[frame=tb]{}
+class JVOIPFileOutputParams : public JVOIPComponentParams
+{
+public:
+	enum EncodingType { SixteenBit, EightBit, MuLaw, Other };
+	
+	JVOIPFileOutputParams(const std::string &filename,
+	                      int samplerate = 8000,
+	                      EncodingType t = MuLaw,
+	                      bool stereo = false);
+	void SetFileName(const std::string &filename);
+	void SetSampleRate(int samplerate);
+	void SetStereo(bool stereo);
+	void SetEncodingType(EncodingType t);
+};
+		\end{lstlisting}
+		If the file already exists, it is opened with the parameters of the file itself 
+		and data is appended to that file. When a new file needs to be created, the parameters
+		specified in the class above are used.
+
+		\subsection{{\tt JVOIPDPCMCompression} component}
+		
+		The DPCM compression module can be instructed to use a specific amount
+		of encoding bits (for the differences). By default, the number of
+		encoding bits is five:
+		
+		\begin{lstlisting}[frame=tb]{}
+class JVOIPDPCMCompressionParams : public JVOIPComponentParams
+{
+public:
+	JVOIPDPCMCompressionParams(int encodebits = 5);
+	void SetNumEncodeBits(int n);
+};
+		\end{lstlisting}
+		
+		\subsection{{\tt JVOIPRTPTransmission} component}
+		
+		The RTP transmission module has several parameters, as you can see
+		in the definition of the {\tt JVOIPRTPTransmissionParams} class below.
+		You can set these parameters:
+		\begin{itemize}
+			\item {\bf The portbase}\\
+			      This defines at which ports the module will poll for
+			      incoming RTP and RTCP packets. By default, the portbase
+			      is 5000.
+			\item {\bf Auto adjust buffering}\\
+			      If this feature is enabled, the module will determine
+			      automatically how much buffering is required to eliminate
+			      jitter. By default, this feature is enabled.
+			\item {\bf Default buffering}\\
+			      If `auto adjust buffering' is not enabled, this specifies
+			      how much buffering is inserted into each RTP stream. By
+			      default, this is 50 ms.
+			\item {\bf Minimum buffering}\\
+			      This specifies the minimum amount of buffering to be inserted
+			      in each RTP stream. By default this is 20 ms. This feature is
+			      especially useful when `auto adjust buffering' is enabled. In 
+			      that case it is still possible that the amount of buffering is
+			      too low for some streams. This way, you can set a minimum.
+			\item {\bf Accept own packets}\\
+			      By default, the RTP module ignores its own packets. If you
+			      want to accept them, you'll have to enable this feature.
+			\item {\bf Set local IP address}\\
+			      The RTP module tries to determine your IP address automatically.
+			      If, for some reason, this IP address should be wrong, you can
+			      specify it yourself with this parameter. By default it is set to
+			      zero, which means that the RTP module will try to detect your IP
+			      address.
+		\end{itemize}
+		
+		
+		\begin{lstlisting}[frame=tb]{}
+class JVOIPRTPTransmissionParams : public JVOIPComponentParams
+{
+public:
+	JVOIPRTPTransmissionParams(int pbase = 5000,
+	                           bool autobuffer = true,
+	                           double defbuffering = 0.050,
+	                           double minbuffering = 0.020,
+	                           bool acceptownpack = false,
+	                           unsigned long locIP = 0);
+	void SetPortBase(int pb);
+	void SetAutoAdjustBuffer(bool autobuffer);
+	void SetDefaultBuffering(double defbuffer);
+	void SetMinimumBuffering(double minbuffer);
+	void SetAcceptOwnPackets(bool acceptownpack);
+	void SetLocalIP(unsigned long locIP);
+};
+		\end{lstlisting}
+	
+	\section{Overriding {\tt JVOIPSession} member functions}
+	
+	If you derive your own class from {\tt JVOIP\-Session}, you can use some
+	extra features of the library by overriding some of the library's
+	member functions. An example presented earlier was the use of the 
+	{\tt ThreadFinishedHandler}.
+	
+		\subsection{User defined initialization and destruction}
+		
+		When you derive your class from {\tt JVOIP\-Session}, you may want to
+		perform some extra initialization when a VoIP session is created.
+		This can be done by overriding the {\tt UserDefinedCreate} function.
+		Its syntax is like this:
+		\begin{lstlisting}[frame=tb]{}
+bool UserDefinedCreate()
+		\end{lstlisting}
+		This function should return {\tt true} if your initialization was
+		successfull or {\tt false} in case an error occurred.
+		
+		Similarly, there is also a function which is called when the VoIP
+		session is destroyed. If you want something to be done at that point,
+		you can override {\tt UserDefinedDestroy}, which is defined like
+		this:
+		\begin{lstlisting}[frame=tb]{}
+void UserDefinedDestroy()
+		\end{lstlisting}
+		
+		\subsection{User-defined components}
+		
+		If you want to register a user-defined component, you have to override
+		one of the following functions, depending on the component type:
+		\begin{lstlisting}[frame=tb]{}
+bool RegisterUserDefinedInput(JVOIPVoiceInput **i)
+bool RegisterUserDefinedOutput(JVOIPVoiceOutput **o)
+bool RegisterUserDefinedLocalisation(JVOIPLocalisation **l)
+bool RegisterUserDefinedCompressionModule(JVOIPCompressionModule **c)
+bool RegisterUserDefinedTransmission(JVOIPTransmission **t)
+bool RegisterUserDefinedMixer(JVOIPMixer **m)
+		\end{lstlisting}
+		
+		In these functions, you fill in a pointer to your component in the argument. 
+		If the registration was successfull, you have to return {\tt true},
+		otherwise, {\tt false}.
+		
+		For example, suppose we have made our own voice output module, called 
+		{\tt My\-Output\-Module}, and that we're deriving a class {\tt My\-Session}
+		from {\tt JVOIP\-Session}. In this case, we could do something like this:
+		\begin{lstlisting}[frame=tb]{}
+bool MySession::RegisterUserDefinedOutput(JVOIPVoiceOutput **o)
+{
+	MyOutputModule *m;
+
+	m = new MyOutputModule();
+	if (m == NULL)
+		return false;
+	*o = m;
+	return true;
+}
+		\end{lstlisting}
+		
+		Similar to the {\tt Register\-User\-DefinedX} functions, there are also functions
+		to unregister your component. These functions are called when the session is
+		destroyed and can be used to perform some cleanup operations. The functions
+		look like this:
+		\begin{lstlisting}[frame=tb]{}
+void UnregisterUserDefinedInput(JVOIPVoiceInput *i)
+void UnregisterUserDefinedOutput(JVOIPVoiceOutput *o)
+void UnregisterUserDefinedLocalisation(JVOIPLocalisation *l)
+void UnregisterUserDefinedCompressionModule(JVOIPCompressionModule *c)
+void UnregisterUserDefinedTransmission(JVOIPTransmission *t)
+void UnregisterUserDefinedMixer(JVOIPMixer *m)
+		\end{lstlisting}
+		
+		In the example above, we dynamically allocated our own output module.
+		To prevent memory leaks, we should destroy this module in the
+		{\tt Unregister\-User\-Defined\-Output} routine:
+		\begin{lstlisting}[frame=tb]{}
+void MySession::UnregisterUserDefinedOutput(JVOIPVoiceOutput *o)
+{
+	if (o != NULL)
+		delete o;
+}
+		\end{lstlisting}
+		
+		\subsection{\tt IntervalAction}
+		
+		Each time a sample interval passes, the {\tt IntervalAction} member function
+		is called. The syntax of this function is as follows:
+		\begin{lstlisting}[frame=tb]{}
+bool IntervalAction(bool *waitforsignal)
+		\end{lstlisting}
+		
+		It is possible that in your {\tt IntervalAction} implementation, you do
+		something which clears the buffers of the signal waiter associated with
+		the timing module. In that case, the VoIP thread would block if it waits
+		for a signal (which is what the VoIP thread does after the call to
+		{\tt Interval\-Action} is done). In this situation, you can avoid the 
+		blocking of the thread by setting the {\tt wait\-for\-signal} argument 
+		to {\tt false}.
+		
+		The {\tt JVOIPSession} class already has an implementation of {\tt Interval\-Action}
+		in which it is checked if the connection is getting out of sync. If this
+		happens it resets some modules, which improves the synchronization.
+		
+		This means that if you override the {\tt Interval\-Action} member function,
+		this check is no longer performed. So it might be a good idea to make a call
+		to {\tt JVOIP\-Session::\-Interval\-Action} from your own implementation of
+		the function.
+		
+		\subsection{3D Localisation functions}
+		
+		The 3D localisation modules which are a part of the library, all call the
+		following overridable members functions:
+		\begin{lstlisting}[frame=tb]{}
+bool RetrieveOwnPosition(double *xpos,double *ypos,double *zpos,
+                         double *righteardir_x,double *righteardir_y,
+                         double *righteardir_z,double *frontdir_x,
+						 double *frontdir_y, double *frontdir_z,
+						 double *updir_x,double *updir_y,
+						 double *updir_z)
+bool EncodeOwnPosition(unsigned char encodebuffer[], int *len)
+bool DecodePositionalInfo(unsigned char buffer[], int len, 
+                          double *xpos,double *ypos,double *zpos)
+		\end{lstlisting}
+		
+		Only if these functions return {\tt true}, the information they provided
+		is used. If they return {\tt false}, the session continues, but 
+		no 3D effect will be added.
+		
+		In the arguments of {\tt Retrieve\-Own\-Position}, you should fill in both
+		your own position in the 3D environment and the vector which contains
+		the direction of your right ear.
+		
+		In {\tt Encode\-Own\-Position} you have to encode your own position into
+		{\tt encode\-buffer}, which is a buffer of length {\tt JVOIP\_\-3DINFO\-BUFFER\-LEN}.
+		The actual amount of bytes you used, has to be filled in in the agument
+		{\tt len}.
+		
+		The {\tt Decode\-Positional\-Info} function has to be able to decode
+		the positional info in {\tt buffer} and has to fill in the resulting 
+		position in the 3D environment in the arguments {\tt xpos}, {\tt ypos} 
+		and {\tt zpos}.
+		

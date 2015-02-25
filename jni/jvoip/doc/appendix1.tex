@@ -1,0 +1,63 @@
+\chapter*{Appendix A\\\vspace{0.9cm}Why `Destroy' must be called explicitly}
+\addcontentsline{toc}{chapter}{Appendix A: Why 'Destroy' must be called explicitly}
+
+In the versions prior to 1.2.0, the destructor of {\tt JVOIPSession} simply
+called the {\tt Destroy} method. David Allouche pointed out that this can 
+lead to all sorts of problems. For
+this reason, it is now illegal to call the destructor of a session which
+is still active. The session must first be terminated by the user, using
+the {\tt Destroy} function.
+In this appendix I will try to explain why problems can arise with the
+previously used approach. 
+
+The core of the problem is the use of virtual functions. For example,
+the {\tt Destroy} method calls the virtual function {\tt UserDefinedDestroy}.
+Consider the following example:
+
+	\begin{lstlisting}[frame=tb]{}
+class MySession : public JVOIPSession
+{
+public:
+	MySession() { mydata = NULL; }
+	~MySession() { }
+	bool UserDefinedCreate()
+	{
+		mydata = new MyData();
+		return true;
+	}
+	void UserDefinedDestroy()
+	{
+		delete mydata;
+		mydata = NULL;
+	}
+}
+\end{lstlisting}
+
+In the previous example, we want some memory to be allocated when the session is 
+created and we would like that memory to be returned to the system when the 
+session is destroyed. Now, in the previously used approach the {\tt JVOIPSession}
+destructor would simply call {\tt Destroy}. Let's take a look at what would happen.
+
+Suppose that at some point you have an active session and call the {\tt MySession}
+destructor, for example by doing something like: {\tt delete mysession; }
+First, the {\tt MySession} destructor would be executed (which does nothing in this
+case). Then, the {\tt JVOIPSession} destructor is called, which in turn calls the
+{\tt Destroy} member function. At some point, {\tt Destroy} executes the virtual
+function {\tt UserDefinedDestroy}.
+
+However, at that moment the {\tt MySession} part of the object does not exist anymore.
+Normally the virtual function pointer of {\tt UserDefinedDestroy} should have been
+reset to the address of {\tt JVOIPSession}'s implementation of this function. So,
+instead of calling the {\tt User\-Defined\-Destroy} function of {\tt MySession},
+the {\tt JVOIPSession} method is called instead. This obviously will cause a
+memory leak since the memory allocated in {\tt MySession}'s {\tt User\-Defined\-Create}
+function is not released when the object is destroyed.
+
+You may argue that having one memory leak is not that bad, but this example simply
+illustrates that unexpected things can (and will) happen with that approach.
+Also, keep in mind that the library uses many virtual functions (including
+pure virtual functions which, by definition, have no default implementation)
+in several threads. This only makes it more likely that something can go wrong
+that way. For this reason, calling the destructor of an active session will
+now cause an exception to be thrown.
+

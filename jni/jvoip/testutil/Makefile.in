@@ -1,0 +1,10 @@
+SUBDIRS = Qt
+
+all:
+
+clean:
+	@for i in $(SUBDIRS) ; do\
+		if [ -e $$i/Makefile ] ; then \
+			(cd $$i ; make clean) ;\
+		fi \
+	done

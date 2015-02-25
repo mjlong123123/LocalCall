@@ -1,0 +1,39 @@
+\documentclass[12pt,a4paper]{report}
+
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage[width=16cm,height=24cm,top=2.5cm,head=0cm]{geometry}
+\usepackage{hyperref}
+\lstset{language=C++}
+\lstset{tabsize=4}
+%\lstset{indent=1cm}
+
+\begin{document}
+	\author{Jori Liesenborgs\\{\tt (jori@lumumba.uhasselt.be)}}
+	\date{October 20, 2005}
+	\title{JVOIPLIB (v1.4.1) programmer's manual}
+	\maketitle
+
+	\newpage
+	\pagenumbering{roman}
+	\setcounter{page}{1}
+	\input{preface.tex}
+
+	\newpage
+	\addcontentsline{toc}{chapter}{Contents}
+	\tableofcontents
+
+	\newpage
+	\addcontentsline{toc}{chapter}{List of Figures}
+	\listoffigures
+
+	\newpage
+	\pagenumbering{arabic}
+	\setcounter{page}{1}
+	\input{chapter1.tex}
+	\input{chapter2.tex}
+	\input{chapter3.tex}
+	\input{chapter4.tex}
+	\input{appendix1.tex}
+\end{document}
+

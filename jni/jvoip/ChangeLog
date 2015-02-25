@@ -1,0 +1,78 @@
+                                                               October 20, 2005
+
+
+                                JVOIPLIB ChangeLog
+
+                                    -----------
+
+
+ 1.4.1 (October 2005)
+ 	* Some debug information was sent to stdout in the previous
+	  release. This is now fixed.
+
+ 1.4.0 (October 2005)
+ 	* Added simple Speex compression component. Currently, only
+	  a 20 ms sampling interval and 8000 Hz sampling rate are
+	  supported.
+	* Fixed small bug in jvoiprtptransmission.cpp: the mcastIPs list
+	  was not updated in the JoinMulticastGroup call.
+	* Configure script was adjusted. Now, you can use --disable-X
+	  to exclude certain components from the library.
+	* Added file input and output components using libsndfile.
+
+ 1.3.0 (September 2004)
+ 	* Now using JThread 1.1.0
+	* Now using JRTPLIB 3.x.x
+ 	* Added possibility to exclude components from the library. This
+	  way, a light-weight version of the library can easily be created.
+	  To disable a component, adjust a line in jvoipconfig.h in the
+	  'src' subdirectory.
+	* Solved the '100%' cpu time problem in the MS-Windows version.
+
+ 1.2.0 (February 2002)
+ 	* IMPORTANT CHANGE: As of now, it is illegal to call the
+	  JVOIPSession destructor while the session is still active.
+	  The 'Destroy' method must be called prior to the destructor.
+	  Thanks to David Allouche for pointing out the problem in
+	  the previous versions.
+	* Made improvements to the soundcard IO modules (on both
+	  windows and Linux platforms).
+	* Fixed some bugs which could cause the session to hang...
+	* Added a configure script for the Qt version of the test utility.
+	* Changed the makefile so that the manual isn't compiled 
+	  automatically. A precompiled manual will be included in the
+	  source code archive.
+
+ 1.1.1 (July 2001)
+ 	* Minor changes: the latest MS Visual Studio service pack,
+	  caused some problems with winsock. Made some adjustments to
+	  work around it.
+				   
+ 1.1.0 (June 2001)
+ 	* Modified 3D localisation interface.
+	* Added HRTF based localisation module
+	* Made the VoiceBlock more extensible: added a way to allow other
+	  components to pass information between them (by adding info to
+	  the VoiceBlock instance)
+	* Removed the JThread and JMutex module from the library package.
+	  Now, these things are put in their own library.
+	* Changed the interface of the transmission module: now the sample
+	  interval is also passed as a parameter in the Init function.
+	* Fixed bug in JVOIPSession which could cause the session to wait
+	  for a signal that would never come.
+	* Fixed bug in JVOIPSessionParams: forgot to copy several fields
+	  in the assignment operator and the copy constructor.
+	* Added mu-law encoding as a compression module.
+	* Added LPC 5.4kbps compression module. This implementation is
+	  based upon the LPC implementation of Ron Frederick.
+	* Added GSM 06.10 compression module, based upon the implementation
+	  by Jutta Degener and Carsten Bormann.
+	* Fixed some bugs in JVOIPCompression: forgot to do some actions
+	  when some functions returned an error.
+	* Improved synchronization in the RTP transmission module.
+	* Added a nice test utility for the library (in Qt and MFC). 
+	* Fixed bug in Win32 soundcard output module.
+
+ 1.0.0 (December 2000)
+ 	* First official release of jvoiplib.
+

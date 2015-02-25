@@ -1,0 +1,34 @@
+CXX		= @CXX@
+CFLAGS		= @JVOIP_CFLAGS@
+INCLUDES	= -I ../../../componentframework/ -I ../../base -I @JVOIP_JTHREADINCLUDES@ \
+                  -I ../../../ -I ../ -I ../../../preallocmem/
+JVOIPLIBDIR	= ../../../../lib/
+JVOIPINCLUDEDIR	= ../../../../include/
+
+OBJECTS		= jvoipsoundcardinput.o jvoipsoundcardoutput.o jvoipsounddevice.o\
+		  jvoipsounddevicedriver.o jvoipsounddevdrvthread.o jvoipsoundcardparams.o
+
+all: $(OBJECTS)
+	cp -f $(OBJECTS) $(JVOIPLIBDIR)
+	cp -f *.h $(JVOIPINCLUDEDIR)
+	
+clean:
+	rm -f $(OBJECTS)
+
+jvoipsoundcardinput.o: jvoipsoundcardinput.cpp jvoipsoundcardinput.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsoundcardinput.o jvoipsoundcardinput.cpp
+
+jvoipsoundcardoutput.o: jvoipsoundcardoutput.cpp jvoipsoundcardoutput.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsoundcardoutput.o jvoipsoundcardoutput.cpp
+
+jvoipsounddevice.o: jvoipsounddevice.cpp jvoipsounddevice.h jvoipsounddeviceblock.h jvoipsounddevicedriver.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsounddevice.o jvoipsounddevice.cpp
+
+jvoipsounddevicedriver.o: jvoipsounddevicedriver.cpp jvoipsounddevicedriver.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsounddevicedriver.o jvoipsounddevicedriver.cpp
+
+jvoipsounddevdrvthread.o: jvoipsounddevdrvthread.cpp jvoipsounddevdrvthread.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsounddevdrvthread.o jvoipsounddevdrvthread.cpp
+
+jvoipsoundcardparams.o: jvoipsoundcardparams.cpp jvoipsoundcardparams.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsoundcardparams.o jvoipsoundcardparams.cpp

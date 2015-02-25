@@ -1,0 +1,22 @@
+CXX		= @CXX@
+CFLAGS		= @JVOIP_CFLAGS@
+INCLUDES	= -I ../../componentframework/ -I ../../ -I ./ -I ../impl -I @JVOIP_JTHREADINCLUDES@ \
+		  -I ../../thirdparty/gsm/inc -I ../../thirdparty/lpc @JVOIP_SPEEXINCLUDES@
+JVOIPLIBDIR	= ../../../lib/
+JVOIPINCLUDEDIR	= ../../../include/
+
+OBJECTS		= jvoipcompression.o jvoipsessionlocalisation.o
+
+all: $(OBJECTS)
+	cp -f $(OBJECTS) $(JVOIPLIBDIR)
+	cp -f *.h $(JVOIPINCLUDEDIR)
+	
+clean:
+	rm -f $(OBJECTS)
+
+jvoipcompression.o: jvoipcompression.cpp jvoipcompression.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipcompression.o jvoipcompression.cpp
+
+jvoipsessionlocalisation.o: jvoipsessionlocalisation.cpp jvoipsessionlocalisation.h
+	$(CXX) $(CFLAGS) $(INCLUDES) -c -o jvoipsessionlocalisation.o jvoipsessionlocalisation.cpp
+

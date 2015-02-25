@@ -1,0 +1,16 @@
+SOURCES=manual.tex preface.tex chapter1.tex chapter2.tex chapter3.tex \
+        chapter4.tex appendix1.tex
+
+all: manual.ps manual.pdf
+
+clean:
+	rm -f manual.{aux,toc,dvi,log,ps,lof,pdf,out}
+
+manual.ps: $(SOURCES)
+	pslatex manual.tex
+	pslatex manual.tex
+	pslatex manual.tex
+	dvips -t a4 -o manual.ps manual.dvi
+
+manual.pdf: manual.ps
+	ps2pdf manual.ps

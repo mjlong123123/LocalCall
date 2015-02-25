@@ -1,0 +1,53 @@
+CXX			= g++
+CXXFLAGS		= @JVOIP_CFLAGS@
+
+UIC			= @JVOIPTESTUTIL_UIC@
+MOC			= @JVOIPTESTUTIL_MOC@
+QTLIBDIR		= @JVOIPTESTUTIL_QTLIBDIR@
+QTINCDIR		= @JVOIPTESTUTIL_QTINCDIR@
+
+INCLUDES		= -I $(QTINCDIR) -I ../../include -I @JVOIP_JTHREADINCLUDES@ -I @JVOIP_JRTPLIBINCLUDES@
+LIBDIRS			= -L $(QTLIBDIR)
+LIBRARIES		= -lqt-mt ../../libjvoip.a @JVOIP_CXXLINKFLAGS@
+
+OBJECTS			= main.o jvoiptestutildlg.o jvoiptestutildlg.moc.o \
+			  jvoiptestutildlgimpl.o jvoiptestutildlgimpl.moc.o
+
+.SUFFIXES: .o .cpp .h .moc.cpp
+
+.cpp.o:
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
+
+.h.moc.cpp:
+	$(MOC) -o $@ $<
+	
+all: jvoiptestutil
+
+clean:
+	rm -f $(OBJECTS) jvoiptestutil
+	rm -f *.moc.*
+	rm -f jvoiptestutildlg.h jvoiptestutildlg.cpp
+	rm -f config.cache
+	rm -f config.log
+	rm -f config.status
+
+jvoiptestutil: $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(LIBDIRS) -o jvoiptestutil $(OBJECTS) $(LIBRARIES)
+
+main.o: main.cpp jvoiptestutildlgimpl.h
+jvoiptestutildlgimpl.h: jvoiptestutildlg.h
+jvoiptestutildlg.h: jvoiptestutildlg.ui
+	$(UIC) -o jvoiptestutildlg.h jvoiptestutildlg.ui
+
+jvoiptestutildlg.o: jvoiptestutildlg.cpp
+jvoiptestutildlg.cpp: jvoiptestutildlg.h
+	$(UIC) -o jvoiptestutildlg.cpp -impl jvoiptestutildlg.h jvoiptestutildlg.ui
+
+jvoiptestutildlg.moc.o: jvoiptestutildlg.moc.cpp
+jvoiptestutildlg.moc.cpp: jvoiptestutildlg.h
+jvoiptestutildlgimpl.o: jvoiptestutildlgimpl.cpp
+jvoiptestutildlgimpl.cpp: jvoiptestutildlgimpl.h
+jvoiptestutildlgimpl.h: jvoiptestutildlg.h
+jvoiptestutildlgimpl.moc.o: jvoiptestutildlgimpl.moc.cpp
+jvoiptestutildlgimpl.moc.cpp: jvoiptestutildlgimpl.h
+
