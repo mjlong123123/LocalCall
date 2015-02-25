@@ -1,0 +1,95 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent" >
+
+    <RelativeLayout
+        android:id="@+id/mTitleLayout"
+        android:layout_width="fill_parent"
+        android:layout_height="50dip"
+        android:background="#FFF0F5" >
+
+        <TextView
+            android:id="@+id/mTitleText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:singleLine="true"
+            android:text="@string/title_localcall"
+            android:textColor="#000000"
+            android:textSize="18dip" />
+
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="3dip"
+            android:layout_alignParentBottom="true"
+            android:background="#3A2C37" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/mMyLayout"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/mTitleLayout"
+        android:background="#FFF0F5" >
+
+        <ImageView
+            android:id="@+id/mMyIcon"
+            android:layout_width="70dip"
+            android:layout_height="70dip"
+            android:padding="5dip"
+            android:scaleType="fitXY"
+            android:src="@drawable/my_icon" />
+
+        <View
+            android:id="@+id/mMyLine1"
+            android:layout_width="1dip"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/mMyIcon"
+            android:layout_alignTop="@+id/mMyIcon"
+            android:layout_marginBottom="5dip"
+            android:layout_marginTop="5dip"
+            android:layout_toRightOf="@+id/mMyIcon"
+            android:background="#3A2C37" />
+
+        <TextView
+            android:id="@+id/mMyText1"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dip"
+            android:layout_toRightOf="@+id/mMyLine1"
+            android:singleLine="true"
+            android:text="@string/my_ip"
+            android:textColor="#000000"
+            android:textSize="18dip" />
+
+        <View
+            android:id="@+id/mMyLine2"
+            android:layout_width="fill_parent"
+            android:layout_height="1dip"
+            android:layout_below="@+id/mMyText1"
+            android:layout_toRightOf="@+id/mMyLine1"
+            android:background="#3A2C37" />
+
+        <TextView
+            android:id="@+id/mMyText2"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/mMyLine2"
+            android:layout_margin="5dip"
+            android:layout_toRightOf="@+id/mMyLine1"
+            android:singleLine="true"
+            android:text="test"
+            android:textColor="#000000"
+            android:textSize="18dip" />
+    </RelativeLayout>
+
+    <ListView
+        android:id="@+id/mListView"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:layout_below="@+id/mMyLayout"
+        android:background="#00ffff"
+        android:cacheColorHint="#00ffff" />
+
+</RelativeLayout>

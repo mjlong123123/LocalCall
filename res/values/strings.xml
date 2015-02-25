@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <string name="app_name">对讲机</string>
+    <string name="wifiap_open">开启热点</string>
+    <string name="wifiap_connect">连接热点</string>
+    
+    <string name="action_settings">Settings</string>
+    <string name="hello_world">Hello world!</string>
+
+    <string name="toast_receive_ip">获得ip地址成功</string>
+    <string name="toast_receive_running">正在扫描</string>
+    <string name="toast_receive_over">扫描结束</string>
+    <string name="toast_send_over">发送信息结束</string>
+    <string name="toast_send_address">发送地址错误</string>
+    <string name="toast_send_running">正在发送</string>
+    
+    <string name="button_send">自己可见</string>
+    <string name="button_receive">扫描可见设备</string>
+    
+    
+    
+    <string name="title_localcall">局域网对讲机</string>
+    <string name="my_ip">IP:</string>
+    <string name="press_talk">长按屏幕说话</string>
+    
+    <string name="pressed_talk">您正在向<xliff:g id="talk_">%s</xliff:g>喊话</string>
+    
+</resources>
